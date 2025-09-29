@@ -7,11 +7,6 @@ import { motion } from "framer-motion"
 import { CheckCircle, Calendar, BookOpen, HelpCircle, FileText } from "lucide-react"
 import Image from "next/image"
 
-// Se você estiver usando SSG ou export estático, remova estas duas linhas.
-// Para SSR/Vercel normal, elas ajudam a evitar o erro de prerender.
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 export default function Page() {
   return (
     <Suspense fallback={<div style={{padding:16}}>Carregando…</div>}>
@@ -19,8 +14,6 @@ export default function Page() {
     </Suspense>
   )
 }
-
-// ---- A partir daqui é o SEU componente original (só troquei o export default) ----
 
 interface ModuleProgress { [key: string]: number }
 interface User { name: string; isLoggedIn: boolean; id?: string }
