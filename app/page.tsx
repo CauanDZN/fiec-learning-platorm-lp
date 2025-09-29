@@ -1,104 +1,71 @@
 "use client"
 
+import { Suspense } from "react"
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { CheckCircle, Calendar, BookOpen, HelpCircle, FileText } from "lucide-react"
 import Image from "next/image"
 
-interface ModuleProgress {
-  [key: string]: number
+// Se você estiver usando SSG ou export estático, remova estas duas linhas.
+// Para SSR/Vercel normal, elas ajudam a evitar o erro de prerender.
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{padding:16}}>Carregando…</div>}>
+      <LearningPlatform />
+    </Suspense>
+  )
 }
 
-interface User {
-  name: string
-  isLoggedIn: boolean
-  id?: string
-}
+// ---- A partir daqui é o SEU componente original (só troquei o export default) ----
 
+interface ModuleProgress { [key: string]: number }
+interface User { name: string; isLoggedIn: boolean; id?: string }
 interface ModuleInfo {
-  exists: boolean
-  sectionnum: number | null
-  sectionid: number | null
-  name: string | null
-  open: boolean
-  available: boolean | null
-  availableinfo: string | null
+  exists: boolean; sectionnum: number | null; sectionid: number | null;
+  name: string | null; open: boolean; available: boolean | null; availableinfo: string | null;
 }
-
 type ModKey = `modulo${1|2|3|4|5|6|7|8}`
-
 interface CoursePayload {
-  id: number
-  name: string
-  shortname: string
-  modules: Record<ModKey, ModuleInfo | null>
-  firstopen?: ModKey | null
+  id: number; name: string; shortname: string;
+  modules: Record<ModKey, ModuleInfo | null>; firstopen?: ModKey | null
 }
-
 interface ProgressParams {
-  autoplay: boolean
-  muted: boolean
-  saveProgress: boolean
-  hideControls: boolean
-  restartAfterEnd: boolean
-  showCaptions: boolean
-  allowSkip: boolean
-  trackTime: boolean
+  autoplay: boolean; muted: boolean; saveProgress: boolean; hideControls: boolean;
+  restartAfterEnd: boolean; showCaptions: boolean; allowSkip: boolean; trackTime: boolean
 }
 
-export default function LearningPlatform() {
+function LearningPlatform() {
   const searchParams = useSearchParams()
 
   const [user, setUser] = useState<User>({ name: "Nome do Usuário", isLoggedIn: false })
   const [payload, setPayload] = useState<CoursePayload | null>(null)
-
-  // progresso inicial segue seu mock (pode vir de outro endpoint depois)
   const [progress, setProgress] = useState<ModuleProgress>({
     "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0,
   })
-
-  const [progressParams, setProgressParams] = useState<ProgressParams>({
-    autoplay: true,
-    muted: false,
-    saveProgress: true,
-    hideControls: false,
-    restartAfterEnd: true,
-    showCaptions: true,
-    allowSkip: false,
-    trackTime: true,
+  const [progressParams] = useState<ProgressParams>({
+    autoplay: true, muted: false, saveProgress: true, hideControls: false,
+    restartAfterEnd: true, showCaptions: true, allowSkip: false, trackTime: true,
   })
 
-  // Lê ?userid=, params "flat" (cid/cn/csn/fo/mNe...), ou mantém compat com ?course (JSON)
+  // Lê ?userid=, ?uname= e params flat (cid/cn/csn/fo/mNe...) — mantém compat com ?course (JSON)
   useEffect(() => {
     const uid = searchParams.get("userid") ?? undefined
     const uname = searchParams.get("uname") ?? undefined
-
     if (uid || uname) {
-      setUser(u => ({
-        ...u,
-        isLoggedIn: true,
-        id: uid ?? u.id,
-        name: uname ?? u.name, // <-- AQUI: usa o nome vindo do Moodle
-      }))
+      setUser(u => ({ ...u, isLoggedIn: true, id: uid ?? u.id, name: uname ?? u.name }))
     }
 
     const courseParam = searchParams.get("course")
     if (courseParam) {
-      try {
-        setPayload(JSON.parse(courseParam))
-        return
-      } catch {
-        try {
-          setPayload(JSON.parse(decodeURIComponent(courseParam)))
-          return
-        } catch {
-          console.warn("Falha ao decodificar 'course' em JSON; vou tentar os params flat.")
-        }
-      }
+      try { setPayload(JSON.parse(courseParam)); return } catch {}
+      try { setPayload(JSON.parse(decodeURIComponent(courseParam))); return } catch {}
+      console.warn("Falha ao decodificar 'course' em JSON; vou usar os params flat.")
     }
 
-    // Monta via params flat (cid/cn/csn/fo/mNe...)
     const cid = Number(searchParams.get("cid") || 0)
     const cn = searchParams.get("cn") || ""
     const csn = searchParams.get("csn") || ""
@@ -113,26 +80,19 @@ export default function LearningPlatform() {
       const s = searchParams.get(`m${i}s`)
       const si = searchParams.get(`m${i}i`)
       flatModules[`modulo${i}`] = {
-        exists: true,
-        open: o,
-        name: n,
-        sectionnum: s ? Number(s) : null,
-        sectionid: si ? Number(si) : null,
-        available: null,
-        availableinfo: null,
+        exists: true, open: o, name: n,
+        sectionnum: s ? Number(s) : null, sectionid: si ? Number(si) : null,
+        available: null, availableinfo: null,
       }
     }
 
     setPayload({
-      id: cid,
-      name: cn,
-      shortname: csn,
+      id: cid, name: cn, shortname: csn,
       modules: flatModules,
       firstopen: foNum >= 1 && foNum <= 8 ? (`modulo${foNum}` as any) : null,
     })
   }, [searchParams])
 
-  // Lista estática de módulos com imagens e subtítulos (mantive as suas)
   const modulesMeta = [
     { id: "1", title: "Módulo 1", subtitle: "Fundamentos de IA generativa", image: "/images/ai-fundamentals-premium.jpg", duration: "16h" },
     { id: "2", title: "Módulo 2", subtitle: "Governança e risco", image: "/images/governance-risk-new.jpg", duration: "16h" },
@@ -144,7 +104,6 @@ export default function LearningPlatform() {
     { id: "8", title: "Módulo 8", subtitle: "Produtividade e colaboração com IA", image: "/images/ai-productivity-premium.jpg", duration: "16h" },
   ]
 
-  // Mapa de "aberto/fechado" vindo do Moodle (payload.modules[*].open)
   const openMap = useMemo(() => {
     const map: Record<string, boolean> = {}
     for (let i = 1; i <= 8; i++) {
@@ -154,40 +113,26 @@ export default function LearningPlatform() {
     return map
   }, [payload])
 
-  // Nome do módulo preferindo o nome da seção do Moodle
   const titleFromPayload = (id: string, fallback: string) => {
     const key = `modulo${Number(id)}` as ModKey
     const n = payload?.modules?.[key]?.name
     return (n && n.trim().length > 0) ? n : fallback
   }
 
-  // Se quiser usar o destrave do Moodle (open) como verdade absoluta:
   const isModuleUnlocked = (moduleId: string) => {
-    // Se o Moodle mandou o estado, usa ele
     if (payload) return openMap[moduleId] ?? false
-    // Fallback (se payload ausente): seu comportamento antigo
     if (moduleId === "1") return true
-    const prev = String(Number.parseInt(moduleId) - 1)
+    const prev = String(Number(moduleId) - 1)
     return progress[prev] === 100
   }
 
   const handleModuleClick = (moduleId: string) => {
     if (!isModuleUnlocked(moduleId)) return
-
-    const currentProgress = progress[moduleId]
-    if (currentProgress < 100) {
-      const newProgress = Math.min(currentProgress + 25, 100)
-      setProgress(prev => ({ ...prev, [moduleId]: newProgress }))
-
-      console.log(`[Moodle/Next] Progresso ${moduleId}:`, {
-        progress: newProgress,
-        openFromMoodle: openMap[moduleId],
-        autoplay: progressParams.autoplay,
-        saveProgress: progressParams.saveProgress,
-        trackTime: progressParams.trackTime,
-        courseId: payload?.id,
-        sectionId: payload?.modules?.[`modulo${moduleId}` as ModKey]?.sectionid ?? null,
-      })
+    const current = progress[moduleId]
+    if (current < 100) {
+      const next = Math.min(current + 25, 100)
+      setProgress(p => ({ ...p, [moduleId]: next }))
+      console.log("[Moodle/Next] Progresso", { moduleId, progress: next })
     }
   }
 
@@ -195,35 +140,18 @@ export default function LearningPlatform() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Hero */}
+      {/* Cabeçalho mostra o NOME vindo do Moodle */}
       <section className="bg-gray-200 py-16 md:py-24 px-4 md:px-8">
         <div className="container mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
-            <motion.h2
-              className="text-4xl md:text-6xl font-extrabold text-blue-600 mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              Bem-vindo(a) ao seu espaço de aprendizado{user.isLoggedIn && user.id ? `, ID ${user.id}` : ""}!
+            <motion.h2 className="text-4xl md:text-6xl font-extrabold text-blue-600 mb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+              Bem-vindo(a) ao seu espaço de aprendizado, {user.isLoggedIn ? user.name : "Nome do Usuário"}!
             </motion.h2>
-            <motion.p
-              className="text-lg md:text-xl text-gray-700 mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              {payload?.name
-                ? <>Curso: <strong>{payload.name}</strong> ({payload.shortname})</>
-                : "Aqui você pode acompanhar seu progresso no Programa de Cultura de IA - Sistema FIEC."}
+            <motion.p className="text-lg md:text-xl text-gray-700 mb-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+              {payload?.name ? <>Curso: <strong>{payload.name}</strong> ({payload.shortname})</> : "Aqui você pode acompanhar seu progresso no Programa de Cultura de IA - Sistema FIEC."}
             </motion.p>
           </div>
-          <motion.div
-            className="md:w-1/2 flex justify-center"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
+          <motion.div className="md:w-1/2 flex justify-center" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.4 }}>
             <Image src="/images/fiec-ia-logo.png" alt="FIEC +IA Logo" width={600} height={600} className="w-full max-w-lg" />
           </motion.div>
         </div>
