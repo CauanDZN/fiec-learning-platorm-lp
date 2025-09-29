@@ -69,31 +69,63 @@ export default function LearningPlatform() {
     trackTime: true,
   })
 
-  // Lê ?userid= e ?course= (JSON) da URL do iframe
+  // Lê ?userid=, params "flat" (cid/cn/csn/fo/mNe...), ou mantém compat com ?course (JSON)
   useEffect(() => {
     const uid = searchParams.get("userid") ?? undefined
-    if (uid) {
-      setUser(u => ({ ...u, isLoggedIn: true, id: uid }))
-    }
+    if (uid) setUser(u => ({ ...u, isLoggedIn: true, id: uid }))
 
     const courseParam = searchParams.get("course")
     if (courseParam) {
+      // Compat com legado JSON
       try {
-        // searchParams já entrega decodificado; se vier bruto, o try/catch cobre
-        const parsed: CoursePayload = JSON.parse(courseParam)
-        setPayload(parsed)
-        // opcional: se quiser setar o nome do usuário aqui ou outros campos
-        // console.log("Course payload:", parsed)
-      } catch (e) {
-        // fallback: tenta decodificar manualmente
+        setPayload(JSON.parse(courseParam))
+        return
+      } catch {
         try {
-          const parsed: CoursePayload = JSON.parse(decodeURIComponent(courseParam))
-          setPayload(parsed)
+          setPayload(JSON.parse(decodeURIComponent(courseParam)))
+          return
         } catch (e2) {
-          console.error("Falha ao decodificar 'course' dos params:", e2)
+          console.warn("Falha ao decodificar 'course' JSON; vou tentar os params flat.")
         }
       }
     }
+
+    // Monta a partir dos params flat
+    const cid = Number(searchParams.get("cid") || 0)
+    const cn = searchParams.get("cn") || ""
+    const csn = searchParams.get("csn") || ""
+    const foNum = Number(searchParams.get("fo") || 0)
+
+    const flatModules: any = {}
+    for (let i = 1; i <= 8; i++) {
+      const e = searchParams.get(`m${i}e`) === "1"
+      if (!e) {
+        flatModules[`modulo${i}`] = null
+        continue
+      }
+      const o = searchParams.get(`m${i}o`) === "1"
+      const n = searchParams.get(`m${i}n`) || null
+      const s = searchParams.get(`m${i}s`)
+      const si = searchParams.get(`m${i}i`)
+      flatModules[`modulo${i}`] = {
+        exists: true,
+        open: o,
+        name: n,
+        sectionnum: s ? Number(s) : null,
+        sectionid: si ? Number(si) : null,
+        available: null,
+        availableinfo: null,
+      }
+    }
+
+    const built = {
+      id: cid,
+      name: cn,
+      shortname: csn,
+      modules: flatModules,
+      firstopen: foNum >= 1 && foNum <= 8 ? (`modulo${foNum}` as any) : null,
+    }
+    setPayload(built)
   }, [searchParams])
 
   // Lista estática de módulos com imagens e subtítulos (mantive as suas)
