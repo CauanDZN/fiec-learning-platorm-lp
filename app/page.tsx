@@ -9,7 +9,7 @@ import Image from "next/image"
 
 export default function Page() {
   return (
-    <Suspense fallback={<div style={{padding:16}}>Carregando…</div>}>
+    <Suspense fallback={<div style={{ padding: 16 }}>Carregando…</div>}>
       <LearningPlatform />
     </Suspense>
   )
@@ -18,17 +18,32 @@ export default function Page() {
 interface ModuleProgress { [key: string]: number }
 interface User { name: string; isLoggedIn: boolean; id?: string }
 interface ModuleInfo {
-  exists: boolean; sectionnum: number | null; sectionid: number | null;
-  name: string | null; open: boolean; available: boolean | null; availableinfo: string | null;
+  exists: boolean
+  sectionnum: number | null
+  sectionid: number | null
+  name: string | null
+  open: boolean
+  available: boolean | null
+  availableinfo: string | null
+  url?: string | null     // <-- link completo vindo do Moodle (m{N}u)
 }
 type ModKey = `modulo${1|2|3|4|5|6|7|8}`
 interface CoursePayload {
-  id: number; name: string; shortname: string;
-  modules: Record<ModKey, ModuleInfo | null>; firstopen?: ModKey | null
+  id: number
+  name: string
+  shortname: string
+  modules: Record<ModKey, ModuleInfo | null>
+  firstopen?: ModKey | null
 }
 interface ProgressParams {
-  autoplay: boolean; muted: boolean; saveProgress: boolean; hideControls: boolean;
-  restartAfterEnd: boolean; showCaptions: boolean; allowSkip: boolean; trackTime: boolean
+  autoplay: boolean
+  muted: boolean
+  saveProgress: boolean
+  hideControls: boolean
+  restartAfterEnd: boolean
+  showCaptions: boolean
+  allowSkip: boolean
+  trackTime: boolean
 }
 
 function LearningPlatform() {
@@ -44,7 +59,7 @@ function LearningPlatform() {
     restartAfterEnd: true, showCaptions: true, allowSkip: false, trackTime: true,
   })
 
-  // Lê ?userid=, ?uname= e params flat (cid/cn/csn/fo/mNe...) — mantém compat com ?course (JSON)
+  // Lê ?userid=, ?uname= e params flat (cid/cn/csn/fo/mNe/mNu...) — mantém compat com ?course (JSON)
   useEffect(() => {
     const uid = searchParams.get("userid") ?? undefined
     const uname = searchParams.get("uname") ?? undefined
@@ -66,16 +81,21 @@ function LearningPlatform() {
 
     const flatModules: any = {}
     for (let i = 1; i <= 8; i++) {
-      const e = searchParams.get(`m${i}e`) === "1"
+      const e  = searchParams.get(`m${i}e`) === "1"
       if (!e) { flatModules[`modulo${i}`] = null; continue }
-      const o = searchParams.get(`m${i}o`) === "1"
-      const n = searchParams.get(`m${i}n`) || null
-      const s = searchParams.get(`m${i}s`)
+
+      const o  = searchParams.get(`m${i}o`) === "1"
+      const n  = searchParams.get(`m${i}n`) || null
+      const s  = searchParams.get(`m${i}s`)
       const si = searchParams.get(`m${i}i`)
+      const u  = searchParams.get(`m${i}u`) || null  // URL
+
       flatModules[`modulo${i}`] = {
         exists: true, open: o, name: n,
-        sectionnum: s ? Number(s) : null, sectionid: si ? Number(si) : null,
+        sectionnum: s ? Number(s) : null,
+        sectionid: si ? Number(si) : null,
         available: null, availableinfo: null,
+        url: u,
       }
     }
 
@@ -133,18 +153,29 @@ function LearningPlatform() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Cabeçalho mostra o NOME vindo do Moodle */}
+      {/* Hero */}
       <section className="bg-gray-200 py-16 md:py-24 px-4 md:px-8">
         <div className="container mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
-            <motion.h2 className="text-4xl md:text-6xl font-extrabold text-blue-600 mb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <motion.h2
+              className="text-4xl md:text-6xl font-extrabold text-blue-600 mb-4"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+            >
               Bem-vindo(a) ao seu espaço de aprendizado, {user.isLoggedIn ? user.name : "Nome do Usuário"}!
             </motion.h2>
-            <motion.p className="text-lg md:text-xl text-gray-700 mb-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-              {payload?.name ? <>Curso: <strong>{payload.name}</strong> ({payload.shortname})</> : "Aqui você pode acompanhar seu progresso no Programa de Cultura de IA - Sistema FIEC."}
+            <motion.p
+              className="text-lg md:text-xl text-gray-700 mb-6"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              {payload?.name
+                ? <>Curso: <strong>{payload.name}</strong> ({payload.shortname})</>
+                : "Aqui você pode acompanhar seu progresso no Programa de Cultura de IA - Sistema FIEC."}
             </motion.p>
           </div>
-          <motion.div className="md:w-1/2 flex justify-center" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.4 }}>
+          <motion.div
+            className="md:w-1/2 flex justify-center"
+            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.4 }}
+          >
             <Image src="/images/fiec-ia-logo.png" alt="FIEC +IA Logo" width={600} height={600} className="w-full max-w-lg" />
           </motion.div>
         </div>
@@ -155,40 +186,32 @@ function LearningPlatform() {
         <div className="container mx-auto max-w-7xl">
           <motion.h3
             className="text-3xl md:text-4xl font-bold text-center mb-4 text-blue-600"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
           >
             Programa de Cultura de IA - Sistema FIEC
           </motion.h3>
           <motion.p
             className="text-center text-gray-600 mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
           >
             16h de conteúdo gravado (online)
           </motion.p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {modulesMeta.map((module, index) => {
+              const modKey = `modulo${module.id}` as ModKey
               const isUnlocked = isModuleUnlocked(module.id)
               const moduleProgress = progress[module.id]
               const isCompleted = moduleProgress === 100
               const displayTitle = titleFromPayload(module.id, module.title)
+              const moduleUrl = payload?.modules?.[modKey]?.url || null
 
-              return (
-                <motion.div
-                  key={module.id}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={isUnlocked ? { y: -8, scale: 1.02 } : {}}
-                  whileTap={isUnlocked ? { scale: 0.95 } : {}}
-                  className={`relative bg-white p-6 rounded-xl shadow-md transition-all duration-300 ${!isUnlocked ? "opacity-60 cursor-not-allowed" : "hover:shadow-xl cursor-pointer"}`}
-                  onClick={() => handleModuleClick(module.id)}
-                  style={{ cursor: !isUnlocked ? "not-allowed" : "pointer" }}
-                >
+              const wrapperClass = `relative block bg-white p-6 rounded-xl shadow-md transition-all duration-300 ${
+                !isUnlocked ? "opacity-60 cursor-not-allowed" : "hover:shadow-xl cursor-pointer"
+              }`
+
+              const inner = (
+                <>
                   <div className="absolute top-4 right-4 z-10">
                     {isCompleted ? (
                       <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ duration: 0.4 }}>
@@ -237,6 +260,53 @@ function LearningPlatform() {
                         data-track-time={progressParams.trackTime}
                       />
                     </div>
+                  </div>
+
+                  {isUnlocked && moduleUrl && (
+                    <div className="mt-4 text-center">
+                      <span className="inline-block text-sm font-semibold underline">
+                        Abrir no Moodle
+                      </span>
+                    </div>
+                  )}
+                </>
+              )
+
+              if (isUnlocked && moduleUrl) {
+                return (
+                  <motion.div
+                    key={module.id}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                  >
+                    <a
+                      href={moduleUrl}
+                      target="_top"
+                      rel="noopener noreferrer"
+                      className={wrapperClass}
+                      onClick={() => handleModuleClick(module.id)}
+                      style={{ cursor: !isUnlocked ? "not-allowed" : "pointer" }}
+                    >
+                      {inner}
+                    </a>
+                  </motion.div>
+                )
+              }
+
+              return (
+                <motion.div
+                  key={module.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                >
+                  <div
+                    className={wrapperClass}
+                    onClick={() => isUnlocked && handleModuleClick(module.id)}
+                    style={{ cursor: !isUnlocked ? "not-allowed" : "pointer" }}
+                  >
+                    {inner}
                   </div>
                 </motion.div>
               )
