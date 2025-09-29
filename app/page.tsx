@@ -72,11 +72,19 @@ export default function LearningPlatform() {
   // Lê ?userid=, params "flat" (cid/cn/csn/fo/mNe...), ou mantém compat com ?course (JSON)
   useEffect(() => {
     const uid = searchParams.get("userid") ?? undefined
-    if (uid) setUser(u => ({ ...u, isLoggedIn: true, id: uid }))
+    const uname = searchParams.get("uname") ?? undefined
+
+    if (uid || uname) {
+      setUser(u => ({
+        ...u,
+        isLoggedIn: true,
+        id: uid ?? u.id,
+        name: uname ?? u.name, // <-- AQUI: usa o nome vindo do Moodle
+      }))
+    }
 
     const courseParam = searchParams.get("course")
     if (courseParam) {
-      // Compat com legado JSON
       try {
         setPayload(JSON.parse(courseParam))
         return
@@ -84,13 +92,13 @@ export default function LearningPlatform() {
         try {
           setPayload(JSON.parse(decodeURIComponent(courseParam)))
           return
-        } catch (e2) {
-          console.warn("Falha ao decodificar 'course' JSON; vou tentar os params flat.")
+        } catch {
+          console.warn("Falha ao decodificar 'course' em JSON; vou tentar os params flat.")
         }
       }
     }
 
-    // Monta a partir dos params flat
+    // Monta via params flat (cid/cn/csn/fo/mNe...)
     const cid = Number(searchParams.get("cid") || 0)
     const cn = searchParams.get("cn") || ""
     const csn = searchParams.get("csn") || ""
@@ -99,10 +107,7 @@ export default function LearningPlatform() {
     const flatModules: any = {}
     for (let i = 1; i <= 8; i++) {
       const e = searchParams.get(`m${i}e`) === "1"
-      if (!e) {
-        flatModules[`modulo${i}`] = null
-        continue
-      }
+      if (!e) { flatModules[`modulo${i}`] = null; continue }
       const o = searchParams.get(`m${i}o`) === "1"
       const n = searchParams.get(`m${i}n`) || null
       const s = searchParams.get(`m${i}s`)
@@ -118,14 +123,13 @@ export default function LearningPlatform() {
       }
     }
 
-    const built = {
+    setPayload({
       id: cid,
       name: cn,
       shortname: csn,
       modules: flatModules,
       firstopen: foNum >= 1 && foNum <= 8 ? (`modulo${foNum}` as any) : null,
-    }
-    setPayload(built)
+    })
   }, [searchParams])
 
   // Lista estática de módulos com imagens e subtítulos (mantive as suas)
