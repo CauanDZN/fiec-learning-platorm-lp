@@ -319,7 +319,7 @@ function LearningPlatform() {
                         </span>
                       ) : (
                         <span className="inline-block text-sm font-semibold text-gray-400 cursor-not-allowed select-none">
-                          Abrir no Moodle
+                          Módulo bloqueado
                         </span>
                       )}
                     </div>
