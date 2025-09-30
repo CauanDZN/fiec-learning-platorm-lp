@@ -29,6 +29,7 @@ interface ModuleInfo {
   url: string | null
   tstart: number | null
   tend: number | null
+  progress?: number | null
 }
 type ModKey = `modulo${1|2|3|4|5|6|7|8}`
 
@@ -64,41 +65,52 @@ function LearningPlatform() {
     restartAfterEnd: true, showCaptions: true, allowSkip: false, trackTime: true,
   })
 
-  // Lê userid/uname e params flat (?cid, ?cn, ?csn, ?fo, m{N}e/o/n/s/i/u/ts/te).
+  // ► Tudo que lê/parsa URL e seta estado fica dentro do useEffect
   useEffect(() => {
-    const uid = searchParams.get("userid") ?? undefined;
-    const uname = searchParams.get("uname") ?? undefined;
+    const uid = searchParams.get("userid") ?? undefined
+    const uname = searchParams.get("uname") ?? undefined
     if (uid || uname) {
-      setUser(u => ({ ...u, isLoggedIn: true, id: uid ?? u.id, name: uname ?? u.name }));
+      setUser(u => ({ ...u, isLoggedIn: true, id: uid ?? u.id, name: uname ?? u.name }))
     }
 
-    const courseParam = searchParams.get("course");
+    const courseParam = searchParams.get("course")
     if (courseParam) {
-      try { setPayload(JSON.parse(courseParam)); return; } catch {}
-      try { setPayload(JSON.parse(decodeURIComponent(courseParam))); return; } catch {}
-      console.warn("Falha ao decodificar 'course' em JSON; vou usar os params flat.");
+      try { setPayload(JSON.parse(courseParam)); return } catch {}
+      try { setPayload(JSON.parse(decodeURIComponent(courseParam))); return } catch {}
+      console.warn("Falha ao decodificar 'course' em JSON; vou usar os params flat.")
     }
 
-    const cid = Number(searchParams.get("cid") || 0);
-    const cn = searchParams.get("cn") || "";
-    const csn = searchParams.get("csn") || "";
-    const foNum = Number(searchParams.get("fo") || 0);
+    const cid   = Number(searchParams.get("cid") ?? 0)
+    const cn    = searchParams.get("cn")  ?? ""
+    const csn   = searchParams.get("csn") ?? ""
+    const foNum = Number(searchParams.get("fo") ?? 0)
 
-    const flatModules: Record<ModKey, ModuleInfo | null> = {} as any;
+    const flatModules: Record<ModKey, ModuleInfo | null> = {} as any
+    const initialProgress: ModuleProgress = { "1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0 }
 
     for (let i = 1; i <= 8; i++) {
-      const pfx = "m" + i;
+      const pfx = "m" + i
 
-      const exists: boolean = searchParams.get(pfx + "e") === "1";
-      if (!exists) { (flatModules as any)["modulo" + i] = null; continue; }
+      const exists = searchParams.get(pfx + "e") === "1"
+      if (!exists) { (flatModules as any)["modulo" + i] = null; continue }
 
-      const openRaw: string | null   = searchParams.get(pfx + "o");
-      const nameRaw: string | null   = searchParams.get(pfx + "n");
-      const secRaw: string | null    = searchParams.get(pfx + "s");
-      const secIdRaw: string | null  = searchParams.get(pfx + "i");
-      const urlRaw: string | null    = searchParams.get(pfx + "u");
-      const tStartRaw: string | null = searchParams.get(pfx + "ts");
-      const tEndRaw: string | null   = searchParams.get(pfx + "te");
+      const openRaw   = searchParams.get(pfx + "o")
+      const nameRaw   = searchParams.get(pfx + "n")
+      const secRaw    = searchParams.get(pfx + "s")
+      const secIdRaw  = searchParams.get(pfx + "i")
+      const urlRaw    = searchParams.get(pfx + "u")
+      const tStartRaw = searchParams.get(pfx + "ts")
+      const tEndRaw   = searchParams.get(pfx + "te")
+      const pRaw      = searchParams.get(pfx + "p") // progresso 0..100 (opcional)
+
+      const progNum = pRaw !== null ? Number(pRaw) : null
+      const prog = (progNum !== null && !Number.isNaN(progNum))
+        ? Math.max(0, Math.min(100, progNum))
+        : null
+
+      if (prog !== null) {
+        initialProgress[String(i)] = prog
+      }
 
       const mod: ModuleInfo = {
         exists: true,
@@ -111,17 +123,21 @@ function LearningPlatform() {
         url: urlRaw ?? null,
         tstart: tStartRaw !== null ? Number(tStartRaw) : null,
         tend: tEndRaw !== null ? Number(tEndRaw) : null,
-      };
+        progress: prog,
+      }; // ← SEMICOLON OBRIGATÓRIO AQUI
 
-      (flatModules as any)["modulo" + i] = mod;
+      (flatModules as any)["modulo" + i] = mod; // ← e aqui também
     }
 
     setPayload({
       id: cid, name: cn, shortname: csn,
       modules: flatModules,
       firstopen: foNum >= 1 && foNum <= 8 ? ("modulo" + foNum as any) : null,
-    });
-  }, [searchParams]);
+    })
+
+    // Hidrata a barra de progresso com o que veio do Moodle
+    setProgress(initialProgress)
+  }, [searchParams])
 
   // Card metadata (visual)
   const modulesMeta = [
@@ -149,20 +165,16 @@ function LearningPlatform() {
 
     const now = Math.floor(Date.now() / 1000);
 
-    // 1) Janela de tempo
     if (m.tstart !== null && now < m.tstart) return false;
     if (m.tend !== null && now >= m.tend) return false;
 
-    // 2) Sinal do Moodle
     if (m.open === true) return true;
     if (m.open === false) {
       const hasTimeRule = (m.tstart !== null || m.tend !== null);
       const hasReason = (m.available === false) || !!(m.availableinfo && m.availableinfo.trim());
-      // Se não há janela de tempo e não veio um motivo explícito, eu libero
       return !(hasTimeRule || hasReason);
     }
 
-    // 3) Sem info de disponibilidade? Libera.
     return true;
   };
 
@@ -225,11 +237,20 @@ function LearningPlatform() {
           </motion.p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {modulesMeta.map((module, index) => {
+            {[
+              { id: "1", title: "Módulo 1", subtitle: "Fundamentos de IA generativa", image: "/images/ai-fundamentals-premium.jpg", duration: "16h" },
+              { id: "2", title: "Módulo 2", subtitle: "Governança e risco", image: "/images/governance-risk-new.jpg", duration: "16h" },
+              { id: "3", title: "Módulo 3", subtitle: "Possibilidades tecnológicas", image: "/images/tech-possibilities-premium.jpg", duration: "16h" },
+              { id: "4", title: "Módulo 4", subtitle: "Engenharia de prompts e padrões de saída", image: "/images/prompt-engineering-new.jpg", duration: "16h" },
+              { id: "5", title: "Módulo 5", subtitle: "Agentes e automação de workflow", image: "/images/ai-agents-premium.jpg", duration: "16h" },
+              { id: "6", title: "Módulo 6", subtitle: "IA no ecossistema corporativo", image: "/images/corporate-ecosystem-premium.jpg", duration: "16h" },
+              { id: "7", title: "Módulo 7", subtitle: "Confiabilidade, vieses e segurança", image: "/images/ai-security-premium.jpg", duration: "16h" },
+              { id: "8", title: "Módulo 8", subtitle: "Produtividade e colaboração com IA", image: "/images/ai-productivity-premium.jpg", duration: "16h" },
+            ].map((module, index) => {
               const modKey = `modulo${module.id}` as ModKey;
               const m = payload?.modules?.[modKey];
               const isUnlocked = isModuleUnlocked(module.id);
-              const moduleProgress = progress[module.id];
+              const moduleProgress = (m?.progress ?? progress[module.id]) || 0;
               const isCompleted = moduleProgress === 100;
               const displayTitle = titleFromPayload(module.id, module.title);
               const moduleUrl = m?.url || null;
