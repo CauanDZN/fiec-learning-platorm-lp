@@ -311,11 +311,17 @@ function LearningPlatform() {
                     </div>
                   </div>
 
-                  {isUnlocked && moduleUrl && (
+                  {moduleUrl && (
                     <div className="mt-4 text-center">
-                      <span className="inline-block text-sm font-semibold underline">
-                        Abrir no Moodle
-                      </span>
+                      {isUnlocked ? (
+                        <span className="inline-block text-sm font-semibold underline">
+                          Abrir no Moodle
+                        </span>
+                      ) : (
+                        <span className="inline-block text-sm font-semibold text-gray-400 cursor-not-allowed select-none">
+                          Abrir no Moodle
+                        </span>
+                      )}
                     </div>
                   )}
                 </>
