@@ -236,7 +236,7 @@ function LearningPlatform() {
             16h de conteúdo gravado (online)
           </motion.p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
             {[
               { id: "1", title: "Módulo 1", subtitle: "Fundamentos de IA generativa", image: "/images/ai-fundamentals-premium.jpg", duration: "16h" },
               { id: "2", title: "Módulo 2", subtitle: "Governança e risco", image: "/images/governance-risk-new.jpg", duration: "16h" },
@@ -255,7 +255,7 @@ function LearningPlatform() {
               const displayTitle = titleFromPayload(module.id, module.title);
               const moduleUrl = m?.url || null;
 
-              const wrapperClass = `relative block bg-white p-6 rounded-xl shadow-md transition-all duration-300 ${
+              const wrapperClass = `relative flex flex-col justify-between bg-white p-6 rounded-xl shadow-md transition-all duration-300 h-full min-h-[380px] ${
                 !isUnlocked ? "opacity-60 cursor-not-allowed" : "hover:shadow-xl cursor-pointer"
               }`;
 
