@@ -315,7 +315,7 @@ function LearningPlatform() {
                     <div className="mt-4 text-center">
                       {isUnlocked ? (
                         <span className="inline-block text-sm font-semibold underline">
-                          Abrir no Moodle
+                          Abrir módulo
                         </span>
                       ) : (
                         <span className="inline-block text-sm font-semibold text-gray-400 cursor-not-allowed select-none">
