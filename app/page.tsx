@@ -4,7 +4,7 @@ import { Suspense } from "react"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { CheckCircle, Calendar, BookOpen, HelpCircle, FileText } from "lucide-react"
+import { CheckCircle } from "lucide-react"
 import Image from "next/image"
 
 export default function Page() {
@@ -138,18 +138,6 @@ function LearningPlatform() {
     // Hidrata a barra de progresso com o que veio do Moodle
     setProgress(initialProgress)
   }, [searchParams])
-
-  // Card metadata (visual)
-  const modulesMeta = [
-    { id: "1", title: "Módulo 1", subtitle: "Fundamentos de IA generativa", image: "/images/ai-fundamentals-premium.jpg", duration: "16h" },
-    { id: "2", title: "Módulo 2", subtitle: "Governança e risco", image: "/images/governance-risk-new.jpg", duration: "16h" },
-    { id: "3", title: "Módulo 3", subtitle: "Possibilidades tecnológicas", image: "/images/tech-possibilities-premium.jpg", duration: "16h" },
-    { id: "4", title: "Módulo 4", subtitle: "Engenharia de prompts e padrões de saída", image: "/images/prompt-engineering-new.jpg", duration: "16h" },
-    { id: "5", title: "Módulo 5", subtitle: "Agentes e automação de workflow", image: "/images/ai-agents-premium.jpg", duration: "16h" },
-    { id: "6", title: "Módulo 6", subtitle: "IA no ecossistema corporativo", image: "/images/corporate-ecosystem-premium.jpg", duration: "16h" },
-    { id: "7", title: "Módulo 7", subtitle: "Confiabilidade, vieses e segurança", image: "/images/ai-security-premium.jpg", duration: "16h" },
-    { id: "8", title: "Módulo 8", subtitle: "Produtividade e colaboração com IA", image: "/images/ai-productivity-premium.jpg", duration: "16h" },
-  ];
 
   const titleFromPayload = (id: string, fallback: string) => {
     const key = `modulo${Number(id)}` as ModKey;
@@ -360,7 +348,7 @@ function LearningPlatform() {
         </div>
       </section>
 
-      {/* Seções adicionais (exemplo) */}
+      {/* Seções adicionais (atualizado conforme tasks) */}
       <section className="py-12 px-4 md:px-8 bg-gray-200">
         <div className="container mx-auto max-w-7xl">
           <motion.h3 className="text-3xl md:text-4xl font-bold text-center mb-8 text-blue-600" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -369,24 +357,15 @@ function LearningPlatform() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center justify-items-center">
             {[
-              { name: "Calendário", icon: Calendar, image: "/calendar-icon.png" },
-              { name: "Exercícios Extras", icon: BookOpen, image: "/exercises-book-icon.jpg" },
-              { name: "Tire Suas Dúvidas Aqui", icon: HelpCircle, image: "/help-support-icon.png" },
-              { name: "Pesquisa Institucional", icon: FileText, image: "/institutional-survey-icon.jpg" },
+              // ✅ Adiciona Calendário com o link fornecido
+              { name: "Calendário", image: "/calendar-icon.png", url: "https://fiec.digitalcollege.com.br/mod/page/view.php?id=173&forceview=1" },
+              // ✅ Mantém Pesquisa Institucional (bloqueada até concluir tudo)
+              { name: "Pesquisa Institucional", image: "/institutional-survey-icon.jpg" },
+              // ⛔️ Removidos: "Exercícios Extras", "Tire Suas Dúvidas Aqui", "Frequência de Chamada"
             ].map((section, index) => {
-              const allModulesCompleted = Object.values(progress).every(p => p === 100);
               const isLocked = section.name === "Pesquisa Institucional" && !allModulesCompleted;
-
-              return (
-                <motion.div
-                  key={section.name}
-                  initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={!isLocked ? { y: -5, scale: 1.05 } : {}}
-                  whileTap={!isLocked ? { scale: 0.95 } : {}}
-                  className={`w-full max-w-xs bg-white p-6 rounded-xl shadow-md transition-all duration-300 flex flex-col items-center ${isLocked ? "opacity-60 cursor-not-allowed" : "hover:shadow-2xl cursor-pointer"}`}
-                  style={{ cursor: isLocked ? "not-allowed" : "pointer" }}
-                >
+              const CardInner = (
+                <>
                   <div className="relative mb-4">
                     <Image src={section.image || "/placeholder.svg"} alt={`Ícone ${section.name}`} width={80} height={80} className="w-16 h-16 rounded-lg" />
                     {isLocked && (
@@ -398,6 +377,42 @@ function LearningPlatform() {
                   <span className={`text-lg font-bold transition-colors duration-300 ${isLocked ? "text-gray-400" : "text-blue-600"}`}>
                     {section.name}
                   </span>
+                </>
+              )
+
+              const className = `w-full max-w-xs bg-white p-6 rounded-xl shadow-md transition-all duration-300 flex flex-col items-center ${
+                isLocked ? "opacity-60 cursor-not-allowed" : "hover:shadow-2xl cursor-pointer"
+              }`
+
+              return (
+                <motion.div
+                  key={section.name}
+                  initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={!isLocked ? { y: -5, scale: 1.05 } : {}}
+                  whileTap={!isLocked ? { scale: 0.95 } : {}}
+                  className="w-full"
+                >
+                  {section.url && !isLocked ? (
+                    <a
+                      href={section.url}
+                      target="_top"
+                      rel="noopener noreferrer"
+                      className={className}
+                      aria-label={section.name}
+                    >
+                      {CardInner}
+                    </a>
+                  ) : (
+                    <div
+                      className={className}
+                      aria-disabled={isLocked ? true : undefined}
+                      role="button"
+                      tabIndex={isLocked ? -1 : 0}
+                    >
+                      {CardInner}
+                    </div>
+                  )}
                 </motion.div>
               )
             })}
